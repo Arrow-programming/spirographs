@@ -1,84 +1,31 @@
-<!doctype html>
-<html lang="en-US">
-  <head>
-    <meta charset="UTF-8" />
-    <title>File(s) size</title>
-  </head>
-
-  <body>
-    <form name="uploadForm">
-      <div>
-        <input id="uploadInput" type="file" multiple />
-        <label for="fileNum">Selected files:</label>
-        <output id="fileNum">0</output>;
-        <label for="fileSize">Total size:</label>
-        <output id="fileSize">0</output>
-      </div>
-      <div><input type="submit" value="Send file" /></div>
-    </form>
-
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Image Viewer</title>
+        <style>
+        	label {
+            	background-color: lightgreen;
+                padding: 14px 8px;
+                border-radius: 10px;
+            
+            }
+            label:hover{
+            	background-color: gray; 
+                transition: 1s;
+                cursor: pointer;
+            }
+        </style>
+    </head>
+    <body>
+    	<input type="file"  accept="image/*" name="image" id="file"  onchange="loadFile(event)" style="display: none;">
+        <label for="file" style="cursor: pointer;">Upload Image</label>
+        <img id="output" width="1000" />	
+    </body>
     <script>
-      const uploadInput = document.getElementById("uploadInput");
-      uploadInput.addEventListener(
-        "change",
-        () => {
-          // Calculate total size
-          let numberOfBytes = 0;
-          for (const file of uploadInput.files) {
-            numberOfBytes += file.size;
-          }
-
-          // Approximate to the closest prefixed unit
-          const units = [
-            "B",
-            "KiB",
-            "MiB",
-            "GiB",
-            "TiB",
-            "PiB",
-            "EiB",
-            "ZiB",
-            "YiB",
-          ];
-          const exponent = Math.min(
-            Math.floor(Math.log(numberOfBytes) / Math.log(1024)),
-            units.length - 1,
-          );
-          const approx = numberOfBytes / 1024 ** exponent;
-          const output =
-            exponent === 0
-              ? `${numberOfBytes} bytes`
-              : `${approx.toFixed(3)} ${
-                  units[exponent]
-                } (${numberOfBytes} bytes)`;
-
-          document.getElementById("fileNum").textContent =
-            uploadInput.files.length;
-          document.getElementById("fileSize").textContent = output;
-        },
-        false,
-      );
-      function handleFiles(files) {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-      
-          if (!file.type.startsWith("image/")) {
-            continue;
-          }
-      
-          const img = document.createElement("img");
-          img.classList.add("obj");
-          img.file = file;
-          preview.appendChild(img); // Assuming that "preview" is the div output where the content will be displayed.
-      
-          const reader = new FileReader();
-          reader.onload = (e) => {
-            img.src = e.target.result;
-          };
-          reader.readAsDataURL(file);
-        }
-      }
-
-    </script>
-  </body>
+      var loadFile = function(event) {
+          var image = document.getElementById('output');
+          image.src = URL.createObjectURL(event.target.files[0]);
+      };
+	</script>
 </html>
