@@ -1,31 +1,311 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <meta charset="utf-8">
-        <title>Image Viewer</title>
+        <link href="https://fonts.googleapis.com/css2?family=Exo:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+        <title>Make Your Own Spirograph</title>
         <style>
-        	label {
-            	background-color: lightgreen;
-                padding: 14px 8px;
-                border-radius: 10px;
-            
+            html, body {
+                margin: 0;
+                padding: 0;
+                transition: 3s;
+                overflow: hidden;
             }
-            label:hover{
-            	background-color: gray; 
-                transition: 1s;
+            canvas {
+                display: block;
+            }
+            #slidecontainer {
+                width: 100%;
+                position: absolute;
+                margin: 5px;
+            }
+            
+            .slider {
+                -webkit-appearance: none;
+                width: 200px;
+                height: 10px;
+                background: #d3d3d3;
+                border-radius: 10px;
+                margin-top: 10px;
+                margin-bottom: 10px;
+                outline: none;
+                opacity: 0.7;
+                -webkit-transition: .2s;
+                transition: opacity .2s;
+            }
+                
+            .slider:hover {
+                opacity: 1;
+            }
+                
+            .slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                border-radius: 15px;
+                background: #04AA6D;
                 cursor: pointer;
+            }
+            .slider::-webkit-slider-thumb:hover {
+                width: 19px;
+                height: 19px;
+            }   
+            
+            /* Ensure Universal Support...*/
+            .slider::-moz-range-thumb {
+                -webkit-appearance: none;
+                appearance: none;
+                width: 18px;
+                height: 18px;
+                border-radius: 15px;
+                background: #04AA6D;
+                cursor: pointer;
+            }
+            .slider::-moz-range-thumb:hover {
+                width: 19px;
+                height: 19px;
+            }  
+            
+            .inputs {
+                width: 50px;
+                background: rgb(255, 255, 255, 0.5);
+                color: black;
+            }
+            p {
+                color: white;
+                font-family: "Exo";
+                display: inline;
+                font-size: 19px;
             }
         </style>
     </head>
     <body>
-    	<input type="file"  accept="image/*" name="image" id="file"  onchange="loadFile(event)" style="display: none;">
-        <label for="file" style="cursor: pointer;">Upload Image</label>
-        <img id="output" width="1000" />	
+        <div id ="slidecontainer">
+            <!--When I program, I strive for readability-->
+            <div class="input-amount">
+                <p>Radius<sub>1</sub>: </p><input class = "inputs" id="r1SlideValueInput" name="Radius1" value="50">
+            </div>
+            <input class = "slider" id="r1SlideValue" type="range" min="0" max="100" value="50" step = "0.1">
+            <div class="input-amount">
+                <p>Radius<sub>2</sub>: </p><input class = "inputs" id="r2SlideValueInput" name="Radius2" value="18">
+            </div>
+            <input class = "slider" id="r2SlideValue" type="range" min="0" max="500" value="18" step ="0.1">
+            <div class="input-amount">
+                <p>Spiral Rate: </p><input class = "inputs" id="rateSlideValueInput" name="Rate" value="390">
+            </div>
+            <input class = "slider" id="rateSlideValue" type="range" min="0" max="500" value="9" step = "0.1">
+            <div class="input-amount">
+                <p>Frequency: </p><input class = "inputs" id="numSlideValueInput" name="Frequency" value="5">
+            </div>
+            <input class = "slider" id="numSlideValue" type="range" min="0" max="500" value="5" step = "1">
+        </div>
+        <canvas id="canvas"></canvas>
+        <script type = "module">
+//setup
+var canvas = document.getElementById("canvas"),
+ctx = canvas.getContext("2d"), 
+width = canvas.width = window.innerWidth, 
+height = canvas.height = window.innerHeight;
+
+//fetch a random color
+function getRndColor() { 
+    var values = ["rgb(100, 100, 255)", "rgb(255, 150, 150)", "rgb(150, 255, 150)"],      valueToUse = values[Math.floor(Math.random() * values.length)]; 
+    return valueToUse;
+}
+
+//construct a spirograph for editing
+var spirographs = [];
+//construct a spirograph for animating 
+var spiroGs = [];
+var Spirograph = (function () {
+    var spirograph = function (x, y, r1, r2, rate, color) {
+        this.x = x;
+        this.y = y;
+        this.r1 = r1;
+        this.r2 = r2;
+        this.rate = rate;
+        this.color = color;
+    };
+    spirograph.prototype = {
+        create: function(){
+            var x, y, θ;
+            // Move to starting point (theta = 0)
+            ctx.beginPath();
+            ctx.moveTo(this.x + this.r1 + this.r2, this.y);
+            
+            var z = 0.5;
+            ctx.lineWidth = z;
+            ctx.strokeStyle = this.color;
+            
+            // A modified version of the roulette equation that achieve the same result faster using a ration (the rate)
+            for (θ = 0; θ <= Math.PI * 2; θ += 0.01) {
+                x = this.x + this.r1 * Math.cos(θ) + this.r2 * Math.cos(θ * this.rate);
+                y = this.y + this.r1 * Math.sin(θ) + this.r2 * Math.sin(θ * this.rate);
+                ctx.lineTo(x, y);
+            }
+
+            // Apply stroke
+            ctx.stroke();
+        },
+    };
+    return spirograph;
+})();
+
+//the starting values for the Roulettes 
+var radius1 = 50;
+var radius2 = 18;
+var rate = 390;
+var num = 5;
+
+//CHANGE BACK!
+var edited = false;
+var mouseClicked = false;
+
+var firstClick = false;
+//mouseClicked input
+window.addEventListener('click', (e) => {
+    //e.preventDefault();
+    mouseClicked = true;
+});
+
+//manage text and slider imputs
+function INPUTS() {
+  //fetch radius one inputs
+  var r1Slider = document.getElementById('r1SlideValue');
+  var r1Input = document.getElementById('r1SlideValueInput');
+  
+  //event listeners 
+  r1Slider.addEventListener('input', function(){ 
+    r1Input.value = this.value;
+    radius1 = this.value;
+    //reset the array
+    spirographs.splice(0, spirographs.length);
+    edited = true;
+  });
+  r1Input.addEventListener('input', function(){ 
+    r1Slider.value = this.value;
+    radius1 = this.value;
+    //reset the array
+    spirographs.splice(0, spirographs.length);
+    edited = true;
+  });
+  
+  //fetch radius two inputs
+  var r2Slider = document.getElementById('r2SlideValue');
+  var r2Input = document.getElementById('r2SlideValueInput');
+  
+  //event listeners 
+  r2Slider.addEventListener('input', function(){ 
+    r2Input.value = this.value;
+    radius2 = this.value;
+    //reset the array
+    spirographs.splice(0, spirographs.length);
+    edited = true;
+  });
+  r2Input.addEventListener('input', function(){ 
+    r2Slider.value = this.value;
+    radius2 = this.value;
+    //reset the array
+    spirographs.splice(0, spirographs.length);
+    edited = true;
+  });
+  
+  //fetch rate inputs
+  var rateSlider = document.getElementById('rateSlideValue');
+  var rateInput = document.getElementById('rateSlideValueInput');
+  
+  //event listeners 
+  rateSlider.addEventListener('input', function(){ 
+    rateInput.value = this.value;
+    rate = this.value;
+    //reset the array
+    spirographs.splice(0, spirographs.length);
+    edited = true;
+  });
+  rateInput.addEventListener('input', function(){ 
+    rateSlider.value = this.value;
+    rate = this.value;
+    //reset the array
+    spirographs.splice(0, spirographs.length);
+    edited = true;
+  });
+  
+  //fetch num inputs
+  var numSlider = document.getElementById('numSlideValue');
+  var numInput = document.getElementById('numSlideValueInput');
+  
+  //event listeners 
+  numSlider.addEventListener('input', function(){ 
+    numInput.value = this.value;
+    num = this.value;
+    //reset the array
+    spirographs.splice(0, spirographs.length);
+    edited = true;
+  });
+  numInput.addEventListener('input', function(){ 
+    numSlider.value = this.value;
+    num = this.value;
+    //reset the array
+    spirographs.splice(0, spirographs.length);
+    edited = true;
+  });
+  
+}
+
+var frames = 0;
+
+//render
+var render = () => {
+    frames++;
+    
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, 600, 600);
+    
+    if(!edited){
+        var n = 5;
+        for(var i = 0; i < n; i++){
+            var r1 = 63 * i;
+            var r2 = 3 * frames;
+            var rat = 20;
+            spiroGs.push(
+            new Spirograph(300, 300, r1, r2, rat, getRndColor()));
+            spiroGs[i].create();
+            spiroGs[i].r2 += Math.sin(frames/1000) * 0.9;
+            spiroGs[i].rate += Math.sin(frames/10000) * 0.5;
+            spiroGs[i].r1 -= Math.sin(frames/100) * 1.9;
+        }
+    }
+    //when the mouse is clicked the user can create their own spirograph
+    if(mouseClicked === true){
+        firstClick = true;
+        //display the sliders
+        document.getElementById('slidecontainer').style.display = "block";
+        for(var i = 0; i < num; i++){
+            spirographs.push(
+                new Spirograph(300, 300, radius1 * i, radius2 * i, rate * i, getRndColor()));
+            spirographs[i].create();
+        }
+    }
+    else {
+        document.getElementById('slidecontainer').style.display = 'none';
+    }
+    if(firstClick === true){
+        spiroGs.splice(0, spiroGs.length);
+    }
+};
+window.setInterval(render, 1000 / 60);
+
+//manage user inputs
+INPUTS();
+
+
+//<script>
+        </script>
     </body>
-    <script>
-      var loadFile = function(event) {
-          var image = document.getElementById('output');
-          image.src = URL.createObjectURL(event.target.files[0]);
-      };
-	</script>
 </html>
+
+
+
+
+
+
